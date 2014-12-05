@@ -306,10 +306,10 @@
     </Details>
   </BugPattern>
 
-  <BugCode addrev="SYS">SYS</BugCode>
-  <BugCode addrev="JSR305">JSR305</BugCode>
-  <BugCode addrev="JPA">JPA</BugCode>
-  <BugCode addrev="JUNIT">JUnit</BugCode>
-  <BugCode addrev="GUAVA">Google Guava</BugCode>
-  <BugCode addrev="FINDBUGS">FindBugs</BugCode>
+  <BugCode abbrev="SYS">SYS</BugCode>
+  <BugCode abbrev="JSR305">JSR305</BugCode>
+  <BugCode abbrev="JPA">JPA</BugCode>
+  <BugCode abbrev="JUNIT">JUnit</BugCode>
+  <BugCode abbrev="GUAVA">Google Guava</BugCode>
+  <BugCode abbrev="FINDBUGS">FindBugs</BugCode>
 </MessageCollection>
