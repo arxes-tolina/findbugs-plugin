@@ -3,9 +3,11 @@ package jp.co.worksap.oss.findbugs.guava;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyByte;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.bcel.Constants;
@@ -17,12 +19,18 @@ import org.apache.bcel.classfile.ConstantUtf8;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.objectweb.asm.Opcodes;
 
+import com.google.common.annotations.VisibleForTesting;
+
+import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.BugReporter;
+import edu.umd.cs.findbugs.classfile.ClassDescriptor;
+import edu.umd.cs.findbugs.classfile.DescriptorFactory;
 import edu.umd.cs.findbugs.classfile.MethodDescriptor;
 
 
@@ -46,15 +54,39 @@ public class UnexpectedAccessDetectorTest {
 	}
 
 	@Test
+	@Ignore
 	public void testNormalMethod() throws Exception {
 		//assertNoBugsReported(ClassWhichCallsNormalMethod.class, detector, bugReporter);
 	}
 
 	@Test
+	@Ignore
 	public void testCallingAnnotatedMethod() throws Exception {
 		//		assertBugReported(ClassWhichCallsVisibleMethodForTesting.class, detector, bugReporter, ofType("GUAVA_UNEXPECTED_ACCESS_TO_VISIBLE_FOR_TESTING"));
 	}
 
+	/**
+	 * Tests reporting a Bug when:
+	 * - called Method has 'default'-visibility
+	 * - called Method is annotated with {@link VisibleForTesting}
+	 * @throws Exception
+	 */
+	@Test
+	public void testVerifyVisibility() throws Exception {
+		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		ClassDescriptor invokedClassDescriptor;
+		MethodDescriptor invokedMethodDescriptor;
+
+		invokedClassDescriptor = DescriptorFactory.createClassDescriptor(Object.class);
+		invokedMethodDescriptor = DescriptorFactory.instance().getMethodDescriptor("java/lang/Object", "equals", "(Ljava/lang/Object;)Z", false);
+		detector.verifyVisibility(invokedClassDescriptor, invokedMethodDescriptor, false);
+
+		invokedClassDescriptor = DescriptorFactory.createClassDescriptor(TestClass.class);
+		invokedMethodDescriptor = DescriptorFactory.instance().getMethodDescriptor("jp/co/worksap/oss/findbugs/guava/TestClass", "test", "()V", false);
+
+		detector.verifyVisibility(invokedClassDescriptor, invokedMethodDescriptor, false);
+		verify(bugReporter).reportBug(any(BugInstance.class));
+	}
 
 	/**
 	 * Tests searching for {@link Method}s of a {@link JavaClass}
@@ -72,7 +104,7 @@ public class UnexpectedAccessDetectorTest {
 		testMethod.setSignatureIndex(signature_index);
 		testMethod.setConstantPool(constant_pool);
 		Constant nameConstant = new ConstantUtf8("equals");
-		Constant signatureConstant = new ConstantUtf8("Ljava/lang/Object;");
+		Constant signatureConstant = new ConstantUtf8("(Ljava/lang/Object;)Z");
 
 		when(constant_pool.getConstant(eq(name_index), anyByte())).thenReturn(nameConstant);
 		when(constant_pool.getConstant(eq(signature_index), anyByte())).thenReturn(signatureConstant);
@@ -81,7 +113,7 @@ public class UnexpectedAccessDetectorTest {
 		when(bcelClass.getMethods()).thenReturn(methods);
 		when(bcelClass.getClassName()).thenReturn("java.lang.Object");
 
-		MethodDescriptor invokedMethod = new MethodDescriptor("java/lang/Object", "equals", "Ljava/lang/Object;", false); //   mock(MethodDescriptor.class);
+		MethodDescriptor invokedMethod = new MethodDescriptor("java/lang/Object", "equals", "(Ljava/lang/Object;)Z", false); //   mock(MethodDescriptor.class);
 
 		Method method = detector.findMethod(bcelClass, invokedMethod);
 

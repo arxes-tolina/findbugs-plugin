@@ -52,7 +52,7 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 			MethodDescriptor invokedMethod = getMethodDescriptorOperand();
 
 			try {
-				verifyVisibility(invokedClass, invokedMethod);
+				verifyVisibility(invokedClass, invokedMethod, true);
 			} catch (ClassNotFoundException e) {
 				String message = String.format("Detector could not find %s, you should add this class into CLASSPATH", invokedClass.getDottedClassName());
 				bugReporter.logError(message, e);
@@ -63,12 +63,16 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	/**
 	 * <p>Report if specified method is package-private and annotated by {@code @VisibleForTesting}.</p>
 	 */
-	private void verifyVisibility(ClassDescriptor invokedClass, MethodDescriptor invokedMethod) throws ClassNotFoundException {
+	@VisibleForTesting
+	void verifyVisibility(ClassDescriptor invokedClass, MethodDescriptor invokedMethod, boolean reportCaller) throws ClassNotFoundException {
 		JavaClass bcelClass = Repository.getRepository().loadClass(invokedClass.getDottedClassName());
 		Method bcelMethod = findMethod(bcelClass, invokedMethod);
 
 		if (checkVisibility(bcelMethod) && checkAnnotated(bcelMethod)) {
-			BugInstance bug = new BugInstance(this, "GUAVA_UNEXPECTED_ACCESS_TO_VISIBLE_FOR_TESTING", HIGH_PRIORITY).addCalledMethod(this).addClassAndMethod(this).addSourceLine(this);
+			BugInstance bug = new BugInstance(this, "GUAVA_UNEXPECTED_ACCESS_TO_VISIBLE_FOR_TESTING", HIGH_PRIORITY);
+			if (reportCaller) {
+				bug.addCalledMethod(this).addClassAndMethod(this).addSourceLine(this);
+			}
 			bugReporter.reportBug(bug);
 		}
 	}
