@@ -1,13 +1,19 @@
 package jp.co.worksap.oss.findbugs.guava;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyByte;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.apache.bcel.Constants;
 import org.apache.bcel.classfile.AnnotationEntry;
 import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.Constant;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.ConstantUtf8;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.junit.Before;
@@ -50,14 +56,36 @@ public class UnexpectedAccessDetectorTest {
 	}
 
 
+	/**
+	 * Tests searching for {@link Method}s of a {@link JavaClass}
+	 */
 	@Test
 	public void testFindMethod() {
 		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		ConstantPool constant_pool = mock(ConstantPool.class);
+		JavaClass bcelClass = mock(JavaClass.class);
 
-		JavaClass bcelClass = null;
-		MethodDescriptor invokedMethod = null;
+		Method testMethod = new Method();
+		int name_index = 0;
+		int signature_index = 1;
+		testMethod.setNameIndex(name_index);
+		testMethod.setSignatureIndex(signature_index);
+		testMethod.setConstantPool(constant_pool);
+		Constant nameConstant = new ConstantUtf8("equals");
+		Constant signatureConstant = new ConstantUtf8("Ljava/lang/Object;");
+
+		when(constant_pool.getConstant(eq(name_index), anyByte())).thenReturn(nameConstant);
+		when(constant_pool.getConstant(eq(signature_index), anyByte())).thenReturn(signatureConstant);
+
+		Method[] methods = { testMethod };
+		when(bcelClass.getMethods()).thenReturn(methods);
+		when(bcelClass.getClassName()).thenReturn("java.lang.Object");
+
+		MethodDescriptor invokedMethod = new MethodDescriptor("java/lang/Object", "equals", "Ljava/lang/Object;", false); //   mock(MethodDescriptor.class);
 
 		Method method = detector.findMethod(bcelClass, invokedMethod);
+
+		assertNotNull(method);
 
 	}
 
