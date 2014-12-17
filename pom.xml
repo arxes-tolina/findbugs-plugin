@@ -175,6 +175,11 @@
 			<artifactId>mockito-all</artifactId>
 			<version>1.10.8</version>
 		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.2</version>
+		</dependency>
 		<!-- dependencies for jp.co.worksap.oss.findbugs.jpa package -->
 		<dependency>
 			<groupId>org.hibernate.javax.persistence</groupId>

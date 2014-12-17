@@ -8,6 +8,8 @@ import org.apache.bcel.Repository;
 import org.apache.bcel.classfile.AnnotationEntry;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -28,6 +30,8 @@ import edu.umd.cs.findbugs.classfile.MethodDescriptor;
 public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	@Nonnull
 	private final BugReporter bugReporter;
+
+	private final transient Log log = LogFactory.getLog(this.getClass());
 
 	/**
 	 * @param bugReporter
@@ -68,7 +72,7 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 		JavaClass bcelClass = Repository.getRepository().loadClass(invokedClass.getDottedClassName());
 		Method bcelMethod = findMethod(bcelClass, invokedMethod);
 
-		if (checkVisibility(bcelMethod) && checkAnnotated(bcelMethod)) {
+		if (bcelMethod != null && checkVisibility(bcelMethod) && checkAnnotated(bcelMethod)) {
 			BugInstance bug = new BugInstance(this, "GUAVA_UNEXPECTED_ACCESS_TO_VISIBLE_FOR_TESTING", HIGH_PRIORITY);
 			if (reportCaller) {
 				bug.addCalledMethod(this).addClassAndMethod(this).addSourceLine(this);
@@ -85,8 +89,8 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 				return bcelMethod;
 			}
 		}
-
-		throw new IllegalArgumentException("Method not found: " + invokedMethod);
+		log.warn("Method not found: " + invokedMethod);
+		return null;
 	}
 
 	/**
