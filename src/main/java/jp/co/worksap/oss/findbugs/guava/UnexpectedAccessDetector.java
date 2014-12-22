@@ -3,6 +3,7 @@ package jp.co.worksap.oss.findbugs.guava;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.bcel.Repository;
 import org.apache.bcel.classfile.AnnotationEntry;
@@ -28,6 +29,8 @@ import edu.umd.cs.findbugs.classfile.MethodDescriptor;
  * @see com.google.common.annotations.VisibleForTesting
  */
 public class UnexpectedAccessDetector extends BytecodeScanningDetector {
+	private static final String VISIBLE_FOR_TESTING_ANNOTATION_TYPE = "Lcom/google/common/annotations/VisibleForTesting;";
+
 	@Nonnull
 	private final BugReporter bugReporter;
 
@@ -36,7 +39,7 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	/**
 	 * @param bugReporter
 	 */
-	public UnexpectedAccessDetector(BugReporter bugReporter) {
+	public UnexpectedAccessDetector(final @Nonnull BugReporter bugReporter) {
 		this.bugReporter = checkNotNull(bugReporter);
 	}
 
@@ -46,19 +49,18 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 			return;
 		}
 
-		ClassDescriptor currentClass = getClassDescriptor();
-		ClassDescriptor invokedClass = getClassDescriptorOperand();
+		final ClassDescriptor currentClass = getClassDescriptor();
+		final ClassDescriptor invokedClass = getClassDescriptorOperand();
 		if (currentClass.equals(invokedClass)) {
 			// no need to check, because method is called by owner
 		} else if (!currentClass.getPackageName().equals(invokedClass.getPackageName())) {
 			// no need to check, because method is called by class in other package
 		} else {
-			MethodDescriptor invokedMethod = getMethodDescriptorOperand();
-
+			final MethodDescriptor invokedMethod = getMethodDescriptorOperand();
 			try {
 				verifyVisibility(invokedClass, invokedMethod, true);
 			} catch (ClassNotFoundException e) {
-				String message = String.format("Detector could not find %s, you should add this class into CLASSPATH", invokedClass.getDottedClassName());
+				final String message = String.format("Detector could not find %s, you should add this class into CLASSPATH", invokedClass.getDottedClassName());
 				bugReporter.logError(message, e);
 			}
 		}
@@ -68,12 +70,12 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	 * <p>Report if specified method is package-private and annotated by {@code @VisibleForTesting}.</p>
 	 */
 	@VisibleForTesting
-	void verifyVisibility(ClassDescriptor invokedClass, MethodDescriptor invokedMethod, boolean reportCaller) throws ClassNotFoundException {
-		JavaClass bcelClass = Repository.getRepository().loadClass(invokedClass.getDottedClassName());
-		Method bcelMethod = findMethod(bcelClass, invokedMethod);
+	void verifyVisibility(final @Nonnull ClassDescriptor invokedClass, final @Nonnull MethodDescriptor invokedMethod, boolean reportCaller) throws ClassNotFoundException {
+		final JavaClass bcelClass = Repository.getRepository().loadClass(invokedClass.getDottedClassName());
+		final Method bcelMethod = findMethod(bcelClass, invokedMethod);
 
-		if (bcelMethod != null && checkVisibility(bcelMethod) && checkAnnotated(bcelMethod)) {
-			BugInstance bug = new BugInstance(this, "GUAVA_UNEXPECTED_ACCESS_TO_VISIBLE_FOR_TESTING", HIGH_PRIORITY);
+		if (isIllegalAccesDetected(bcelMethod)) {
+			final BugInstance bug = new BugInstance(this, "GUAVA_UNEXPECTED_ACCESS_TO_VISIBLE_FOR_TESTING", HIGH_PRIORITY);
 			if (reportCaller) {
 				bug.addCalledMethod(this).addClassAndMethod(this).addSourceLine(this);
 			}
@@ -81,8 +83,12 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 		}
 	}
 
+	private boolean isIllegalAccesDetected(final @Nullable Method bcelMethod) {
+		return bcelMethod != null && checkVisibility(bcelMethod) && checkAnnotated(bcelMethod);
+	}
+
 	@VisibleForTesting
-	Method findMethod(JavaClass bcelClass, MethodDescriptor invokedMethod) {
+	Method findMethod(final @Nonnull JavaClass bcelClass, final @Nonnull MethodDescriptor invokedMethod) {
 		for (Method bcelMethod : bcelClass.getMethods()) {
 			MethodDescriptor methodDescriptor = BCELUtil.getMethodDescriptor(bcelClass, bcelMethod);
 			if (methodDescriptor.equals(invokedMethod)) {
@@ -97,7 +103,7 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	 * @return true if visibility of specified method is package-private.
 	 */
 	@VisibleForTesting
-	boolean checkVisibility(Method bcelMethod) {
+	boolean checkVisibility(final @Nonnull Method bcelMethod) {
 		return !(bcelMethod.isPrivate() || bcelMethod.isProtected() || bcelMethod.isPublic());
 	}
 
@@ -105,10 +111,10 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	 * @return true if specified method is annotated by {@code VisibleForTesting}.
 	 */
 	@VisibleForTesting
-	boolean checkAnnotated(Method bcelMethod) {
+	boolean checkAnnotated(final @Nonnull Method bcelMethod) {
 		for (AnnotationEntry annotation : bcelMethod.getAnnotationEntries()) {
 			String type = annotation.getAnnotationType();
-			if ("Lcom/google/common/annotations/VisibleForTesting;".equals(type)) {
+			if (VISIBLE_FOR_TESTING_ANNOTATION_TYPE.equals(type)) {
 				return true;
 			}
 		}
