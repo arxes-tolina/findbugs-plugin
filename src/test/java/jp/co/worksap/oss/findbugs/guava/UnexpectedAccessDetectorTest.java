@@ -19,7 +19,6 @@ import org.apache.bcel.classfile.ConstantUtf8;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -45,24 +44,11 @@ public class UnexpectedAccessDetectorTest {
 	private BugReporter bugReporter;
 
 	/**
-	 * 
+	 * Init
 	 */
 	@Before
 	public void initMocks() {
 		MockitoAnnotations.initMocks(this);
-		//		bugReporter = bugReporterForTesting();
-	}
-
-	@Test
-	@Ignore
-	public void testNormalMethod() throws Exception {
-		//assertNoBugsReported(ClassWhichCallsNormalMethod.class, detector, bugReporter);
-	}
-
-	@Test
-	@Ignore
-	public void testCallingAnnotatedMethod() throws Exception {
-		//		assertBugReported(ClassWhichCallsVisibleMethodForTesting.class, detector, bugReporter, ofType("GUAVA_UNEXPECTED_ACCESS_TO_VISIBLE_FOR_TESTING"));
 	}
 
 	/**

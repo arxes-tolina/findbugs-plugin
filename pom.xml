@@ -153,6 +153,12 @@
 	</build>
 	<dependencies>
 		<dependency>
+			<groupId>com.youdevise</groupId>
+			<artifactId>test-driven-detectors4findbugs</artifactId>
+			<version>0.2.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
 			<artifactId>findbugs</artifactId>
 			<version>3.0.0</version>

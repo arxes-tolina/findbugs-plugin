@@ -1,5 +1,8 @@
 package jp.co.worksap.oss.findbugs.jpa;
 
+import static com.youdevise.fbplugins.tdd4fb.DetectorAssert.assertBugReported;
+import static com.youdevise.fbplugins.tdd4fb.DetectorAssert.assertNoBugsReported;
+import static com.youdevise.fbplugins.tdd4fb.DetectorAssert.bugReporterForTesting;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -10,35 +13,35 @@ import org.junit.Test;
 
 import edu.umd.cs.findbugs.BugReporter;
 
-@Ignore("test-driven-detectors4findbugs dependency is removed")
+@Ignore("test-driven-detectors4findbugs is not compatible with FB3.0")
 public class TableNameLengthTest {
 	private BugReporter bugReporter;
 	private LongTableNameDetector detector;
 
 	@Before
 	public void setup() {
-		//        bugReporter = bugReporterForTesting();
-		//        detector = new LongTableNameDetector(bugReporter);
+		bugReporter = bugReporterForTesting();
+		detector = new LongTableNameDetector(bugReporter);
 	}
 
 	@Test
 	public void testShortName() throws Exception {
-		//        assertNoBugsReported(ShortTableName.class, detector, bugReporter);
+		assertNoBugsReported(ShortTableName.class, detector, bugReporter);
 	}
 
 	@Test
 	public void testShortNameWithoutAnnotationParameter() throws Exception {
-		//        assertNoBugsReported(ShortTableNameNoAnnotationPara.class, detector, bugReporter);
+		assertNoBugsReported(ShortTableNameNoAnnotationPara.class, detector, bugReporter);
 	}
 
 	@Test
 	public void testLongName() throws Exception {
-		//        assertBugReported(LongTableName.class, detector, bugReporter);
+		assertBugReported(LongTableName.class, detector, bugReporter);
 	}
 
 	@Test
 	public void testLongNameWithoutAnnotationParameter() throws Exception {
-		//        assertBugReported(LongTableNameWithoutAnnotationParameter.class, detector, bugReporter);
+		assertBugReported(LongTableNameWithoutAnnotationParameter.class, detector, bugReporter);
 	}
 
 	@Test
