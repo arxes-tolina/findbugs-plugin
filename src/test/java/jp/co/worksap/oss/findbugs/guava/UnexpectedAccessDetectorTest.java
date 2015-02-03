@@ -1,44 +1,33 @@
 package jp.co.worksap.oss.findbugs.guava;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyByte;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+
 import org.apache.bcel.Constants;
-import org.apache.bcel.classfile.AnnotationEntry;
-import org.apache.bcel.classfile.Attribute;
-import org.apache.bcel.classfile.Constant;
-import org.apache.bcel.classfile.ConstantPool;
-import org.apache.bcel.classfile.ConstantUtf8;
-import org.apache.bcel.classfile.JavaClass;
-import org.apache.bcel.classfile.Method;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.objectweb.asm.Opcodes;
-
-import com.google.common.annotations.VisibleForTesting;
 
 import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.BugReporter;
-import edu.umd.cs.findbugs.classfile.ClassDescriptor;
-import edu.umd.cs.findbugs.classfile.DescriptorFactory;
-import edu.umd.cs.findbugs.classfile.MethodDescriptor;
-
+import edu.umd.cs.findbugs.ba.AccessibleEntity;
+import edu.umd.cs.findbugs.ba.XField;
+import edu.umd.cs.findbugs.ba.XMethod;
+import edu.umd.cs.findbugs.classfile.analysis.AnnotationValue;
 
 /**
  * @author tolina GmbH
- *
  */
 public class UnexpectedAccessDetectorTest {
-
 
 	@Mock
 	private BugReporter bugReporter;
@@ -52,59 +41,75 @@ public class UnexpectedAccessDetectorTest {
 	}
 
 	/**
-	 * Tests reporting a Bug when:
-	 * - called Method has 'default'-visibility
-	 * - called Method is annotated with {@link VisibleForTesting}
-	 * @throws Exception
+	 * Checks if the visibility is checked and the annotations are loaded.
 	 */
 	@Test
-	public void testVerifyVisibility() throws Exception {
-		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
-		ClassDescriptor invokedClassDescriptor;
-		MethodDescriptor invokedMethodDescriptor;
+	public void checkMethod() throws Exception {
+		final UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		final XMethod invokedMethod = mock(XMethod.class);
 
-		invokedClassDescriptor = DescriptorFactory.createClassDescriptor(Object.class);
-		invokedMethodDescriptor = DescriptorFactory.instance().getMethodDescriptor("java/lang/Object", "equals", "(Ljava/lang/Object;)Z", false);
-		detector.verifyVisibility(invokedClassDescriptor, invokedMethodDescriptor, false);
+		when(invokedMethod.isPrivate()).thenReturn(true);
+		when(invokedMethod.isProtected()).thenReturn(false);
+		when(invokedMethod.isPublic()).thenReturn(false);
 
-		invokedClassDescriptor = DescriptorFactory.createClassDescriptor(TestClass.class);
-		invokedMethodDescriptor = DescriptorFactory.instance().getMethodDescriptor("jp/co/worksap/oss/findbugs/guava/TestClass", "test", "()V", false);
+		detector.checkMethod(invokedMethod);
 
-		detector.verifyVisibility(invokedClassDescriptor, invokedMethodDescriptor, false);
-		verify(bugReporter).reportBug(any(BugInstance.class));
+		when(invokedMethod.isPrivate()).thenReturn(false);
+		when(invokedMethod.isProtected()).thenReturn(true);
+		when(invokedMethod.isPublic()).thenReturn(false);
+
+		detector.checkMethod(invokedMethod);
+
+		when(invokedMethod.isPrivate()).thenReturn(false);
+		when(invokedMethod.isProtected()).thenReturn(false);
+		when(invokedMethod.isPublic()).thenReturn(true);
+
+		detector.checkMethod(invokedMethod);
+
+		when(invokedMethod.isPrivate()).thenReturn(false);
+		when(invokedMethod.isProtected()).thenReturn(false);
+		when(invokedMethod.isPublic()).thenReturn(false);
+
+		detector.checkMethod(invokedMethod);
+
+		// This method should only be invoked when it is package protected
+		verify(invokedMethod, times(1)).getAnnotations();
 	}
 
 	/**
-	 * Tests searching for {@link Method}s of a {@link JavaClass}
+	 * Checks if the visibility is checked and the annotations are loaded.
 	 */
 	@Test
-	public void testFindMethod() {
-		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
-		ConstantPool constant_pool = mock(ConstantPool.class);
-		JavaClass bcelClass = mock(JavaClass.class);
+	public void checkField() throws Exception {
+		final UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		final XField invokedField = mock(XField.class);
 
-		Method testMethod = new Method();
-		int name_index = 0;
-		int signature_index = 1;
-		testMethod.setNameIndex(name_index);
-		testMethod.setSignatureIndex(signature_index);
-		testMethod.setConstantPool(constant_pool);
-		Constant nameConstant = new ConstantUtf8("equals");
-		Constant signatureConstant = new ConstantUtf8("(Ljava/lang/Object;)Z");
+		when(invokedField.isPrivate()).thenReturn(true);
+		when(invokedField.isProtected()).thenReturn(false);
+		when(invokedField.isPublic()).thenReturn(false);
 
-		when(constant_pool.getConstant(eq(name_index), anyByte())).thenReturn(nameConstant);
-		when(constant_pool.getConstant(eq(signature_index), anyByte())).thenReturn(signatureConstant);
+		detector.checkField(invokedField);
 
-		Method[] methods = { testMethod };
-		when(bcelClass.getMethods()).thenReturn(methods);
-		when(bcelClass.getClassName()).thenReturn("java.lang.Object");
+		when(invokedField.isPrivate()).thenReturn(false);
+		when(invokedField.isProtected()).thenReturn(true);
+		when(invokedField.isPublic()).thenReturn(false);
 
-		MethodDescriptor invokedMethod = new MethodDescriptor("java/lang/Object", "equals", "(Ljava/lang/Object;)Z", false); //   mock(MethodDescriptor.class);
+		detector.checkField(invokedField);
 
-		Method method = detector.findMethod(bcelClass, invokedMethod);
+		when(invokedField.isPrivate()).thenReturn(false);
+		when(invokedField.isProtected()).thenReturn(false);
+		when(invokedField.isPublic()).thenReturn(true);
 
-		assertNotNull(method);
+		detector.checkField(invokedField);
 
+		when(invokedField.isPrivate()).thenReturn(false);
+		when(invokedField.isProtected()).thenReturn(false);
+		when(invokedField.isPublic()).thenReturn(false);
+
+		detector.checkField(invokedField);
+
+		// This method should only be invoked when it is package protected
+		verify(invokedField, times(1)).getAnnotations();
 	}
 
 	/**
@@ -113,44 +118,49 @@ public class UnexpectedAccessDetectorTest {
 	@Test
 	public void testCheckVisibility() {
 		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
-		Method privateMethod = new Method();
-		privateMethod.setModifiers(Opcodes.ACC_PRIVATE);
+		final AccessibleEntity privateMethod = mock(AccessibleEntity.class);
+		when(privateMethod.isPrivate()).thenReturn(true);
 		assertFalse(detector.checkVisibility(privateMethod));
 
-		Method protectedMethod = new Method();
-		protectedMethod.setModifiers(Opcodes.ACC_PROTECTED);
+		final AccessibleEntity protectedMethod = mock(AccessibleEntity.class);
+		when(protectedMethod.isProtected()).thenReturn(true);
 		assertFalse(detector.checkVisibility(protectedMethod));
 
-		Method publicMethod = new Method();
-		publicMethod.setModifiers(Opcodes.ACC_PUBLIC);
+		final AccessibleEntity publicMethod = mock(AccessibleEntity.class);
+		when(publicMethod.isPublic()).thenReturn(true);
 		assertFalse(detector.checkVisibility(publicMethod));
 
-		Method defaultVisibilityMethod = new Method();
-		assertTrue(detector.checkVisibility(defaultVisibilityMethod));
+		final AccessibleEntity defaultMethod = mock(AccessibleEntity.class);
+		assertTrue(detector.checkVisibility(defaultMethod));
 	}
 
 	/**
-	 * Checks, if detecting of annotated Methods works 
+	 * Checks, if detecting of the annotation works.
 	 */
 	@Test
 	public void testCheckAnnotated() {
 		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
-		Method method = new Method();
-		method.setAttributes(new Attribute[] {});
+		final XMethod method = mock(XMethod.class);
 
-		assertFalse(detector.checkAnnotated(method));
+		detector.checkAnnotations(method.getAnnotations(), false);
 
-		AnnotationEntry someAnnotationEntry = mock(AnnotationEntry.class);
-		when(someAnnotationEntry.getAnnotationType()).thenReturn("Lorg/junit/Test;");
-		method.addAnnotationEntry(someAnnotationEntry);
+		verifyZeroInteractions(bugReporter);
 
-		assertFalse(detector.checkAnnotated(method));
+		final AnnotationValue someAnnotationEntry = mock(AnnotationValue.class);
+		when(someAnnotationEntry.toString()).thenReturn("some other annotaion");
+		when(method.getAnnotations()).thenReturn(Arrays.asList(someAnnotationEntry));
 
-		AnnotationEntry visibleForTestingAnnotationEntry = mock(AnnotationEntry.class);
-		when(visibleForTestingAnnotationEntry.getAnnotationType()).thenReturn("Lcom/google/common/annotations/VisibleForTesting;");
-		method.addAnnotationEntry(visibleForTestingAnnotationEntry);
+		detector.checkAnnotations(method.getAnnotations(), false);
 
-		assertTrue(detector.checkAnnotated(method));
+		verifyZeroInteractions(bugReporter);
+
+		final AnnotationValue visibleForTestingAnnotationEntry = mock(AnnotationValue.class);
+		when(visibleForTestingAnnotationEntry.toString()).thenReturn(UnexpectedAccessDetector.VISIBLE_FOR_TESTING_ANNOTATION);
+		when(method.getAnnotations()).thenReturn(Arrays.asList(someAnnotationEntry, visibleForTestingAnnotationEntry));
+
+		detector.checkAnnotations(method.getAnnotations(), false);
+
+		verify(bugReporter).reportBug(any(BugInstance.class));
 	}
 
 	/**
@@ -163,7 +173,15 @@ public class UnexpectedAccessDetectorTest {
 		assertTrue(detector.isInvoking(Constants.INVOKEINTERFACE));
 		assertTrue(detector.isInvoking(Constants.INVOKESTATIC));
 		assertTrue(detector.isInvoking(Constants.INVOKEVIRTUAL));
-
 	}
 
+	/**
+	 * Checks, if 'field' OP-Codes are detected
+	 */
+	@Test
+	public void testIsWorkingOnAField() {
+		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		assertTrue(detector.isWorkingOnAField(Constants.PUTFIELD));
+		assertTrue(detector.isWorkingOnAField(Constants.GETFIELD));
+	}
 }
