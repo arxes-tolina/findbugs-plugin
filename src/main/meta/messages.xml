@@ -287,6 +287,27 @@
     </Details>
   </BugPattern>
 
+  <Detector class="jp.co.worksap.oss.findbugs.guava.MisuseOfVisibleForTestingDetector">
+    <Details>
+    </Details>
+  </Detector>
+
+  <BugPattern type="GUAVA_MISUSE_OF_VISIBLE_FOR_TESTING">
+    <ShortDescription>
+      You must not use @VisibleForTesting for non-package-private methods or fields.
+    </ShortDescription>
+    <LongDescription>
+      You must not annotate fields wit public, protected or private visibility with @VisibleForTesting,
+      because this is not necessary.
+    </LongDescription>
+    <Details>
+  <![CDATA[
+      <p>You must not annotate fields wit public, protected or private visibility with @VisibleForTesting,
+         because this is not necessary.</p>
+  ]]>
+    </Details>
+  </BugPattern>
+
   <Detector class="jp.co.worksap.oss.findbugs.findbugs.UndocumentedSuppressFBWarningsDetector">
     <Details>
       This detector will find suppressed FindBugs warning which has no justification about why it is suppressed.
