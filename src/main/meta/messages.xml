@@ -289,6 +289,8 @@
 
   <Detector class="jp.co.worksap.oss.findbugs.guava.MisuseOfVisibleForTestingDetector">
     <Details>
+      This detector will find all methods and fields annotated with @VisibleForTesting whose visibility is not 
+      package-private.
     </Details>
   </Detector>
 

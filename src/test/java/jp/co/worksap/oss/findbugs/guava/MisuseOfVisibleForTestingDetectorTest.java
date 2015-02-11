@@ -57,7 +57,7 @@ public class MisuseOfVisibleForTestingDetectorTest {
 		when(bugInstanceSupplier.get()).thenAnswer(new Answer<BugInstanceStub>() {
 			public BugInstanceStub answer(org.mockito.invocation.InvocationOnMock invocation) throws Throwable {
 				return new BugInstanceStub();
-			};
+			}
 		});
 		
 		// visit all fields

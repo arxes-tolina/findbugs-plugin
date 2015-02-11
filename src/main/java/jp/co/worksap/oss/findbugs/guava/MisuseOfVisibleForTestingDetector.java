@@ -20,7 +20,9 @@ import edu.umd.cs.findbugs.BytecodeScanningDetector;
 
 /**
  * <p>
- * Detector to check the corect usage of <code>@VisibleForTesting</code>.
+ * Detector to check the correct usage of <code>@VisibleForTesting</code>. This annotation should be allowed only
+ * for methods and fields with package-private visibility, because the only valid usecase is promoting a private
+ * method or field to package-private for the use in a unit test in the same package. 
  * </p>
  * 
  * @author tolina GmbH
@@ -48,7 +50,7 @@ public class MisuseOfVisibleForTestingDetector extends BytecodeScanningDetector 
 		}
 	};
 
-	public MisuseOfVisibleForTestingDetector(final BugReporter reporter) {
+	public MisuseOfVisibleForTestingDetector(final @Nonnull BugReporter reporter) {
 		this.reporter = reporter;
 	}
 
@@ -74,7 +76,7 @@ public class MisuseOfVisibleForTestingDetector extends BytecodeScanningDetector 
 	public void visit(final Method obj) {
 		if (hasVisibleForTestingAnnotation(obj) && !isPackageVisible(obj)) {
 			final BugInstance bug = bugInstanceSupplier.get();
-			bug.addClassAndMethod(this); //.addSourceLine(this);
+			bug.addClassAndMethod(this);
 			reporter.reportBug(bug);
 		}
 	}
