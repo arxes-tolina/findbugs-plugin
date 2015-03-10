@@ -71,8 +71,8 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	 * @return true, if the member is called within the same package 
 	 */
 	private boolean hasToCheck(final @Nonnull ClassMember member, final @Nonnull ClassDescriptor currentClass) {
-		if (currentClass.equals(member.getClassDescriptor())) {
-			log.debug("No check: " + member.getName() + " is called within the same class: " + currentClass.getClassName());
+		if (currentClass.getClassName().startsWith(member.getClassDescriptor().getClassName())) {
+			log.debug("No check: " + member.getName() + " is called within the same class or inner class: " + currentClass.getClassName());
 			// no need to check, because method is called by owner
 			return false;
 		} else if (!member.getPackageName().equals(currentClass.getPackageName())) {
