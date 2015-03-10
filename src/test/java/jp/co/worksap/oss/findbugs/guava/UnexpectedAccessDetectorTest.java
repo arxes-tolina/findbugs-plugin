@@ -4,7 +4,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -20,8 +19,9 @@ import org.mockito.MockitoAnnotations;
 import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.BugReporter;
 import edu.umd.cs.findbugs.ba.AccessibleEntity;
-import edu.umd.cs.findbugs.ba.XField;
+import edu.umd.cs.findbugs.ba.ClassMember;
 import edu.umd.cs.findbugs.ba.XMethod;
+import edu.umd.cs.findbugs.classfile.ClassDescriptor;
 import edu.umd.cs.findbugs.classfile.analysis.AnnotationValue;
 
 /**
@@ -41,97 +41,81 @@ public class UnexpectedAccessDetectorTest {
 	}
 
 	/**
-	 * Checks if the visibility is checked and the annotations are loaded.
-	 */
-	@Test
-	public void checkMethod() throws Exception {
-		final UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
-		final XMethod invokedMethod = mock(XMethod.class);
-
-		when(invokedMethod.isPrivate()).thenReturn(true);
-		when(invokedMethod.isProtected()).thenReturn(false);
-		when(invokedMethod.isPublic()).thenReturn(false);
-
-		detector.checkMethod(invokedMethod);
-
-		when(invokedMethod.isPrivate()).thenReturn(false);
-		when(invokedMethod.isProtected()).thenReturn(true);
-		when(invokedMethod.isPublic()).thenReturn(false);
-
-		detector.checkMethod(invokedMethod);
-
-		when(invokedMethod.isPrivate()).thenReturn(false);
-		when(invokedMethod.isProtected()).thenReturn(false);
-		when(invokedMethod.isPublic()).thenReturn(true);
-
-		detector.checkMethod(invokedMethod);
-
-		when(invokedMethod.isPrivate()).thenReturn(false);
-		when(invokedMethod.isProtected()).thenReturn(false);
-		when(invokedMethod.isPublic()).thenReturn(false);
-
-		detector.checkMethod(invokedMethod);
-
-		// This method should only be invoked when it is package protected
-		verify(invokedMethod, times(1)).getAnnotations();
-	}
-
-	/**
-	 * Checks if the visibility is checked and the annotations are loaded.
-	 */
-	@Test
-	public void checkField() throws Exception {
-		final UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
-		final XField invokedField = mock(XField.class);
-
-		when(invokedField.isPrivate()).thenReturn(true);
-		when(invokedField.isProtected()).thenReturn(false);
-		when(invokedField.isPublic()).thenReturn(false);
-
-		detector.checkField(invokedField);
-
-		when(invokedField.isPrivate()).thenReturn(false);
-		when(invokedField.isProtected()).thenReturn(true);
-		when(invokedField.isPublic()).thenReturn(false);
-
-		detector.checkField(invokedField);
-
-		when(invokedField.isPrivate()).thenReturn(false);
-		when(invokedField.isProtected()).thenReturn(false);
-		when(invokedField.isPublic()).thenReturn(true);
-
-		detector.checkField(invokedField);
-
-		when(invokedField.isPrivate()).thenReturn(false);
-		when(invokedField.isProtected()).thenReturn(false);
-		when(invokedField.isPublic()).thenReturn(false);
-
-		detector.checkField(invokedField);
-
-		// This method should only be invoked when it is package protected
-		verify(invokedField, times(1)).getAnnotations();
-	}
-
-	/**
 	 * Checks, if detecting of 'default'-Visibility works
 	 */
 	@Test
-	public void testCheckVisibility() {
-		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+	public void testIsDefaultVisible() {
+		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(
+				bugReporter);
 		final AccessibleEntity privateMethod = mock(AccessibleEntity.class);
 		when(privateMethod.isPrivate()).thenReturn(true);
-		assertFalse(detector.checkVisibility(privateMethod));
+		assertFalse(detector.isDefaultVisible(privateMethod));
 
 		final AccessibleEntity protectedMethod = mock(AccessibleEntity.class);
 		when(protectedMethod.isProtected()).thenReturn(true);
-		assertFalse(detector.checkVisibility(protectedMethod));
+		assertFalse(detector.isDefaultVisible(protectedMethod));
 
 		final AccessibleEntity publicMethod = mock(AccessibleEntity.class);
 		when(publicMethod.isPublic()).thenReturn(true);
-		assertFalse(detector.checkVisibility(publicMethod));
+		assertFalse(detector.isDefaultVisible(publicMethod));
 
 		final AccessibleEntity defaultMethod = mock(AccessibleEntity.class);
-		assertTrue(detector.checkVisibility(defaultMethod));
+		assertTrue(detector.isDefaultVisible(defaultMethod));
+	}
+
+	@Test
+	public void testHasToCheck_Visibility() throws Exception {
+		final UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+
+		final ClassDescriptor currentClass = new TestClassDescriptor("a/b/F");
+		final ClassDescriptor memberClass = new TestClassDescriptor("a/b/C");
+	
+		ClassMember entity = mock(ClassMember.class);
+		when(entity.getClassDescriptor()).thenReturn(memberClass);
+		
+		when(entity.isPrivate()).thenReturn(true);
+		assertFalse(detector.hasToCheck(entity, currentClass));
+
+		entity = mock(ClassMember.class);
+		when(entity.isProtected()).thenReturn(true);
+		when(entity.getClassDescriptor()).thenReturn(memberClass);
+		assertFalse(detector.hasToCheck(entity, currentClass));
+
+		entity = mock(ClassMember.class);
+		when(entity.isPublic()).thenReturn(true);
+		when(entity.getClassDescriptor()).thenReturn(memberClass);
+		assertFalse(detector.hasToCheck(entity, currentClass));
+
+		entity = mock(ClassMember.class);
+		when(entity.getClassDescriptor()).thenReturn(memberClass);
+		assertTrue(detector.hasToCheck(entity, currentClass));
+	}
+
+	@Test
+	public void testHasToCheck_CallFromClass() throws Exception {
+		final UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		
+		ClassDescriptor currentClass = new TestClassDescriptor("a/b/C");
+		final ClassDescriptor memberClass = new TestClassDescriptor("a/b/C");
+	
+		final ClassMember entity = mock(ClassMember.class);
+		when(entity.getClassDescriptor()).thenReturn(memberClass);
+
+		// same class
+		assertFalse(detector.hasToCheck(entity, currentClass));
+
+		// inner class of same class
+		currentClass= new TestClassDescriptor("a/b/C$1");
+		assertFalse(detector.hasToCheck(entity, currentClass));
+
+		currentClass= new TestClassDescriptor("a/b/Cxy");
+		// different class in same package, name starts with member class
+		assertTrue(detector.hasToCheck(entity, currentClass));
+
+		// different class in same package
+		currentClass= new TestClassDescriptor("a/b/F");
+		assertTrue(detector.hasToCheck(entity, currentClass));
+				
 	}
 
 	/**
@@ -139,7 +123,8 @@ public class UnexpectedAccessDetectorTest {
 	 */
 	@Test
 	public void testCheckAnnotated() {
-		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(
+				bugReporter);
 		final XMethod method = mock(XMethod.class);
 
 		detector.checkAnnotations(method.getAnnotations(), false);
@@ -148,15 +133,19 @@ public class UnexpectedAccessDetectorTest {
 
 		final AnnotationValue someAnnotationEntry = mock(AnnotationValue.class);
 		when(someAnnotationEntry.toString()).thenReturn("some other annotaion");
-		when(method.getAnnotations()).thenReturn(Arrays.asList(someAnnotationEntry));
+		when(method.getAnnotations()).thenReturn(
+				Arrays.asList(someAnnotationEntry));
 
 		detector.checkAnnotations(method.getAnnotations(), false);
 
 		verifyZeroInteractions(bugReporter);
 
 		final AnnotationValue visibleForTestingAnnotationEntry = mock(AnnotationValue.class);
-		when(visibleForTestingAnnotationEntry.toString()).thenReturn(UnexpectedAccessDetector.VISIBLE_FOR_TESTING_ANNOTATION);
-		when(method.getAnnotations()).thenReturn(Arrays.asList(someAnnotationEntry, visibleForTestingAnnotationEntry));
+		when(visibleForTestingAnnotationEntry.toString()).thenReturn(
+				UnexpectedAccessDetector.VISIBLE_FOR_TESTING_ANNOTATION);
+		when(method.getAnnotations()).thenReturn(
+				Arrays.asList(someAnnotationEntry,
+						visibleForTestingAnnotationEntry));
 
 		detector.checkAnnotations(method.getAnnotations(), false);
 
@@ -168,7 +157,8 @@ public class UnexpectedAccessDetectorTest {
 	 */
 	@Test
 	public void testIsInvoking() {
-		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(
+				bugReporter);
 		assertTrue(detector.isInvoking(Constants.INVOKESPECIAL));
 		assertTrue(detector.isInvoking(Constants.INVOKEINTERFACE));
 		assertTrue(detector.isInvoking(Constants.INVOKESTATIC));
@@ -180,8 +170,17 @@ public class UnexpectedAccessDetectorTest {
 	 */
 	@Test
 	public void testIsWorkingOnAField() {
-		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(bugReporter);
+		UnexpectedAccessDetector detector = new UnexpectedAccessDetector(
+				bugReporter);
 		assertTrue(detector.isWorkingOnAField(Constants.PUTFIELD));
 		assertTrue(detector.isWorkingOnAField(Constants.GETFIELD));
+	}
+	
+	class TestClassDescriptor extends ClassDescriptor {
+		private static final long serialVersionUID = 1L;
+
+		public TestClassDescriptor(final String classname) {
+			super(classname);
+		}
 	}
 }

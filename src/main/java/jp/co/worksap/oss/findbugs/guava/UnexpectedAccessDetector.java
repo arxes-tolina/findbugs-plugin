@@ -53,14 +53,14 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 			final XField invokedField = XFactory.createReferencedXField(this);
 			final ClassDescriptor currentClass = getClassDescriptor();
 			if (hasToCheck(invokedField, currentClass)) {
-				checkField(invokedField);
+				checkAnnotations(invokedField.getAnnotations(), true);
 			}
 		}
 		if (isInvoking(opcode)) {
 			final XMethod invokedMethod = XFactory.createReferencedXMethod(this);
 			final ClassDescriptor currentClass = getClassDescriptor();
 			if (hasToCheck(invokedMethod, currentClass)) {
-				checkMethod(invokedMethod);
+				checkAnnotations(invokedMethod.getAnnotations(), true);
 			}
 		}
 	}
@@ -70,36 +70,17 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	 * @param currentClass
 	 * @return true, if the member is called within the same package 
 	 */
-	private boolean hasToCheck(final @Nonnull ClassMember member, final @Nonnull ClassDescriptor currentClass) {
-		if (currentClass.getClassName().startsWith(member.getClassDescriptor().getClassName())) {
+	@VisibleForTesting
+	 boolean hasToCheck(final @Nonnull ClassMember member, final @Nonnull ClassDescriptor currentClass) {
+		final boolean isDefaultVisible = isDefaultVisible(member);
+		final boolean isSameClass = currentClass.equals(member.getClassDescriptor());
+		final boolean isInnerClass = currentClass.getClassName().startsWith(member.getClassDescriptor().getClassName() + "$");
+		if (!isDefaultVisible || isSameClass || isInnerClass) {
 			log.debug("No check: " + member.getName() + " is called within the same class or inner class: " + currentClass.getClassName());
 			// no need to check, because method is called by owner
 			return false;
-		} else if (!member.getPackageName().equals(currentClass.getPackageName())) {
-			log.debug("No check: " + member.getName() + " is called from outside the its package. Member package: " //
-					+ member.getPackageName() + ". Caller package: " + currentClass.getPackageName());
-			// no need to check, because method is called by class in other package
-			return false;
 		}
 		return true;
-	}
-
-	@VisibleForTesting
-	void checkMethod(final @Nonnull XMethod invokedMethod) {
-		if (checkVisibility(invokedMethod)) {
-			checkAnnotations(invokedMethod.getAnnotations(), true);
-		} else {
-			log.debug("No check: Method " + invokedMethod.getName() + " it not package visible.");
-		}
-	}
-
-	@VisibleForTesting
-	void checkField(final @Nonnull XField invokedField) {
-		if (checkVisibility(invokedField)) {
-			checkAnnotations(invokedField.getAnnotations(), true);
-		} else {
-			log.debug("No check: Field " + invokedField.getName() + " it not package visible.");
-		}
 	}
 
 	/**
@@ -124,7 +105,7 @@ public class UnexpectedAccessDetector extends BytecodeScanningDetector {
 	 * @return true if visibility of specified AccessibleEntity, implemented by method or field, is package-private.
 	 */
 	@VisibleForTesting
-	boolean checkVisibility(final @Nonnull AccessibleEntity entry) {
+	boolean isDefaultVisible(final @Nonnull AccessibleEntity entry) {
 		return !(entry.isPrivate() || entry.isProtected() || entry.isPublic());
 	}
 
