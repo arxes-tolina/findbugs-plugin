@@ -4,8 +4,3 @@ jdk:
 script: "mvn clean install"
 after_success:
   - mvn clean test jacoco:report coveralls:jacoco
-notifications:
-  email:
-    recipients:
-      - toda_k@worksap.co.jp
-      - li_yo@worksap.co.jp
